@@ -6,6 +6,12 @@ extends CharacterBody2D
 
 var new_direction = Vector2(0,1)
 var animation
+var spawn
+var stunned = false
+
+func _ready():
+	position = %Spawn.global_position
+	spawn = position
 
 func _physics_process(delta):
 	# Get the input direction and handle the movement/deceleration.
@@ -19,10 +25,16 @@ func _physics_process(delta):
 	
 	# Do movement
 	var movement = SPEED * direction * delta
-	move_and_collide(movement)
+	if !stunned:
+		move_and_collide(movement)
+	else:
+		move_and_slide()
 	
 	# Play animations
 	player_animations(direction)
+
+func set_stunned(val: bool):
+	stunned = val
 
 func player_animations(direction: Vector2):
 	if direction != Vector2.ZERO:

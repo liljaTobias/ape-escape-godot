@@ -1,8 +1,12 @@
-[gd_scene load_steps=54 format=3 uid="uid://brr65m211dk4n"]
+[gd_scene load_steps=59 format=3 uid="uid://brr65m211dk4n"]
 
 [ext_resource type="Script" path="res://characters/enemy/enemy.gd" id="1_vbu35"]
 [ext_resource type="Texture2D" uid="uid://dsica7q5gdad7" path="res://characters/player/assets/Bob_idle_anim_16x16.png" id="2_0roiw"]
 [ext_resource type="Texture2D" uid="uid://l1qucroqy8pj" path="res://characters/player/assets/Bob_run_16x16.png" id="3_id2vn"]
+[ext_resource type="Script" path="res://scripts/state_machine.gd" id="4_8vtnc"]
+[ext_resource type="Script" path="res://scripts/enemy_idle.gd" id="5_5gwo6"]
+[ext_resource type="Script" path="res://scripts/enemy_follow.gd" id="6_gkaab"]
+[ext_resource type="Script" path="res://scripts/enemy_dragging.gd" id="7_fbqa5"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_4j8kp"]
 atlas = ExtResource("2_0roiw")
@@ -387,22 +391,51 @@ animations = [{
 radius = 4.0
 height = 14.0
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_00t3i"]
+radius = 61.0737
+
 [node name="Enemy" type="CharacterBody2D"]
+collision_mask = 3
 script = ExtResource("1_vbu35")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
 position = Vector2(0, -5)
 sprite_frames = SubResource("SpriteFrames_8b3c5")
-animation = &"idle_left"
-frame_progress = 0.367994
-metadata/_edit_lock_ = true
+animation = &"walk_up"
+frame_progress = 0.149626
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, 4)
 shape = SubResource("CapsuleShape2D_mut0e")
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+target_desired_distance = 32.0
 path_max_distance = 32.0
-path_postprocessing = 1
 debug_enabled = true
+
+[node name="DetectionArea" type="Area2D" parent="."]
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DetectionArea"]
+shape = SubResource("CircleShape2D_00t3i")
+
+[node name="StateMachine" type="Node" parent="." node_paths=PackedStringArray("initial_state")]
+script = ExtResource("4_8vtnc")
+initial_state = NodePath("Follow")
+
+[node name="Idle" type="Node" parent="StateMachine" node_paths=PackedStringArray("enemy")]
+script = ExtResource("5_5gwo6")
+enemy = NodePath("../..")
+speed = 30
+
+[node name="Follow" type="Node" parent="StateMachine"]
+script = ExtResource("6_gkaab")
+
+[node name="Dragging" type="Node" parent="StateMachine"]
+script = ExtResource("7_fbqa5")
+
+[connection signal="navigation_finished" from="NavigationAgent2D" to="." method="_on_navigation_agent_2d_navigation_finished"]
+[connection signal="target_reached" from="NavigationAgent2D" to="." method="_on_navigation_agent_2d_target_reached"]
+[connection signal="body_entered" from="DetectionArea" to="StateMachine/Idle" method="_on_detection_area_body_entered"]
+[connection signal="body_exited" from="DetectionArea" to="StateMachine/Follow" method="_on_detection_area_body_exited"]
